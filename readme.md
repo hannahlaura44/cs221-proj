@@ -24,3 +24,6 @@
 3. Define the Reward Function: Based on electricity prices, ride demand, and SOC.
 4. Implement the Environment: Create a simulation environment that models the EV charging/discharging/ride-providing scenario.
 5. Implement the RL Algorithm: Use an RL algorithm like DQN to learn the optimal policy.
+
+## Addition [Marcelo]
+I added time to get_state and state_to_array because it will allow the agent to learn recognize patterns and adjust its actions based on time-related variations in prices and demand. For example, if the agent knows that that the peak hour is approaching, it might choose to charge the battery to benefit from higher discharge prices later.
