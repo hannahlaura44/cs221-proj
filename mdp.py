@@ -114,7 +114,7 @@ class EVEnvironment:
         }
 
     def step(self, action):
-        print(f"Step {self.time}: Action {action.name}, Current SOC: {self.current_soc}")
+        # print(f"Step {self.time}: Action {action.name}, Current SOC: {self.current_soc}")
         if action == Actions.CHARGE:
             self.current_soc = min(self.current_soc + self.charge_rate, self.max_soc)
             reward = -self.prices['charge'][self.time] * self.charge_rate  # Cost for charging
@@ -134,7 +134,7 @@ class EVEnvironment:
         done = self.time >= self.max_time
 
         next_state = self.get_state()
-        print(f"Next State: {next_state}, Reward: {reward}, Done: {done}")
+        # print(f"Next State: {next_state}, Reward: {reward}, Done: {done}")
         return next_state, reward, done
 
     @classmethod
@@ -147,16 +147,18 @@ state = env.reset()
 print(state)
 
 # Simulating a day with decision-making based on SOC and price comparison
-# for step in range(1, env.max_time):  # Adjusted range to 47 to avoid out-of-bounds error
-#     if env.current_soc < 10:
-#         action = Actions.CHARGE
-#     elif env.prices['discharge'][env.time] > env.prices['ride'][env.time]:
-#         action = Actions.DISCHARGE
-#     else:
-#         action = Actions.RIDE
+total_reward = 0
+for step in range(1, env.max_time):  # Adjusted range to 47 to avoid out-of-bounds error
+    if env.current_soc < 10:
+        action = Actions.CHARGE
+    elif env.prices['discharge'][env.time] > env.prices['ride'][env.time]:
+        action = Actions.DISCHARGE
+    else:
+        action = Actions.RIDE
         
-#     next_state, reward, done = env.step(action)
-#     print(f"Step: {step}, Action: {action.name}, Next State: {next_state}, Reward: {reward}, Done: {done}")
-    
-#     if done:
-#         break
+    next_state, reward, done = env.step(action)
+    print(f"Step: {step}, Action: {action.name}, Next State: {next_state}, Reward: {reward}, Done: {done}")
+    total_reward += reward
+    if done:
+        break
+print(f"Total reward: {total_reward}")
