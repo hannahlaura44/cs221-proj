@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 class LinearQAgent:
-    def __init__(self, state_size, action_size, eta=0.01, gamma=0.95):
+    def __init__(self, state_size, action_size, eta=0.001, gamma=0.99):
         self.state_size = state_size
         self.action_size = action_size
         self.eta = eta  # Learning rate
@@ -34,14 +34,14 @@ class LinearQAgent:
 
 # Initialize environment and agent
 env = EVEnvironment()
-state_size = 4  # The length of the state array
+state_size = 5  # The length of the state array
 action_size = len(Actions)
 agent = LinearQAgent(state_size, action_size)
 
 # Define training parameters
 episodes = 1000
 epsilon = 1.0 # explore with this probability
-epsilon_min = 0.01 # explore at least 1% of the time
+epsilon_min = 0.1 # explore at least 1% of the time
 epsilon_decay = 0.995
 
 # Track rewards for plotting
@@ -52,7 +52,7 @@ for e in range(episodes):
     state = env.reset()
     state_array = env.state_to_array(state)
     total_reward = 0
-    for time in range(env.max_time):
+    for time in range(1, env.max_time):
         action = agent.choose_action(state_array, epsilon)
         next_state, reward, done = env.step(action)
         next_state_array = env.state_to_array(next_state)

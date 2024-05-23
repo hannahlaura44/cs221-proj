@@ -11,15 +11,16 @@ class Actions(enum.Enum):
 class EVEnvironment:
     def __init__(self, initial_soc=0.5, max_soc=75.0, min_soc=0.0, charge_rate=18.75, discharge_rate=7.5, ride_energy=7.5, ride_duration=0.5,
                  base_off_peak_price=0.24, base_peak_price=0.48, base_high_demand_price=1.00, peak_multiplier=(2.0, 4.0), extreme_peak_multiplier=(20,40), off_peak_variance=0.02, peak_variance=0.05, high_demand_variance=0.1,
-                 base_ride_price=20, ride_price_increment=5, penalty_no_charge=-10, peak_hours=range(32, 40), extreme_peak_hours=range(39,42)):
+                 base_ride_price=20, ride_price_increment=5, penalty_no_charge=-10, peak_hours=range(32, 40), extreme_peak_hours=range(39,42), max_time=48):
         
         # Initial state of charge (SOC) of the battery in kWh, set to 50% of max SOC
         # Source: https://evcompare.io/cars/tesla/tesla_model_y/
         self.initial_soc = initial_soc
-        self.current_soc = initial_soc * max_soc
         
         # Maximum state of charge (SOC) of the battery in kWh (Tesla Model Y: 75 kWh)
         self.max_soc = max_soc
+
+        self.current_soc = self.initial_soc * self.max_soc
         
         # Minimum state of charge (SOC) of the battery in kWh
         self.min_soc = min_soc
@@ -39,7 +40,7 @@ class EVEnvironment:
         self.ride_duration = ride_duration
         
         self.time = 0
-        self.max_time = 48  # 24 hours with 30-minute intervals
+        self.max_time = max_time  # 24 hours with 30-minute intervals
         self.ride_demand = self.generate_ride_demand()
 
         # Price parameters
@@ -146,16 +147,16 @@ state = env.reset()
 print(state)
 
 # Simulating a day with decision-making based on SOC and price comparison
-for step in range(47):  # Adjusted range to 47 to avoid out-of-bounds error
-    if env.current_soc < 10:
-        action = Actions.CHARGE
-    elif env.prices['discharge'][env.time] > env.prices['ride'][env.time]:
-        action = Actions.DISCHARGE
-    else:
-        action = Actions.RIDE
+# for step in range(1, env.max_time):  # Adjusted range to 47 to avoid out-of-bounds error
+#     if env.current_soc < 10:
+#         action = Actions.CHARGE
+#     elif env.prices['discharge'][env.time] > env.prices['ride'][env.time]:
+#         action = Actions.DISCHARGE
+#     else:
+#         action = Actions.RIDE
         
-    next_state, reward, done = env.step(action)
-    print(f"Step: {step}, Action: {action.name}, Next State: {next_state}, Reward: {reward}, Done: {done}")
+#     next_state, reward, done = env.step(action)
+#     print(f"Step: {step}, Action: {action.name}, Next State: {next_state}, Reward: {reward}, Done: {done}")
     
-    if done:
-        break
+#     if done:
+#         break
