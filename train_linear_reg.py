@@ -34,7 +34,7 @@ class LinearQAgent:
 
 # Initialize environment and agent
 env = EVEnvironment()
-state_size = 4  # The length of the state array
+state_size = 5  # The length of the state array
 action_size = len(Actions)
 agent = LinearQAgent(state_size, action_size)
 
@@ -52,7 +52,7 @@ for e in range(episodes):
     state = env.reset()
     state_array = env.state_to_array(state)
     total_reward = 0
-    for time in range(env.max_time):
+    for t in range(0, env.max_time-1):
         action = agent.choose_action(state_array, epsilon)
         next_state, reward, done = env.step(action)
         next_state_array = env.state_to_array(next_state)
