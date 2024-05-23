@@ -27,7 +27,6 @@ class LinearQAgent:
         q_values = {action: self.get_q_value(state, action) for action in Actions}
         return max(q_values, key=q_values.get)
 
-# Initialize environment and agent
 env = EVEnvironment()
 state_size = 6  # Added by Marcelo to take time in consideration
 action_size = len(Actions)
