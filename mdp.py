@@ -9,7 +9,7 @@ class Actions(enum.Enum):
     RIDE = 2
 
 class EVEnvironment:
-    def __init__(self, initial_soc=0.5, max_soc=75.0, min_soc=0.0, charge_rate=18.75, discharge_rate=7.5, ride_energy=7.5, ride_duration=0.5,
+    def __init__(self, initial_soc=0.5, max_soc=75.0, min_soc=0.0, charge_rate=125, discharge_rate=5, ride_energy=7.5, ride_duration=0.5,
                  base_off_peak_price=0.24, base_peak_price=0.48, base_high_demand_price=1.00, peak_multiplier=(2.0, 4.0), extreme_peak_multiplier=(20,40), off_peak_variance=0.02, peak_variance=0.05, high_demand_variance=0.1,
                  base_ride_price=20, ride_price_increment=5, penalty_no_charge=-10, peak_hours=range(32, 40), extreme_peak_hours=range(39,42), max_time=48):
         
@@ -137,28 +137,27 @@ class EVEnvironment:
         # print(f"Next State: {next_state}, Reward: {reward}, Done: {done}")
         return next_state, reward, done
 
-    @classmethod
-    def state_to_array(cls, state):
-        return np.array([state["Current SOC"], state["Discharge Price"], state["Charge Price"], state["Ride Price"], state["Ride Demand"]])
+    # @classmethod
+    def state_to_array(self, state):
+        # We need to normalize the states
+        norm_soc = state["Current SOC"] / self.max_soc
 
-# Example usage
-env = EVEnvironment()
-state = env.reset()
-print(state)
+        # Normalizing Prices - Assume these ranges; adjust based on your data
+        min_charge_price = self.base_off_peak_price
+        max_charge_price = self.base_high_demand_price + 4 * self.high_demand_variance 
+        norm_charge_price = (state["Charge Price"] - min_charge_price) / (max_charge_price - min_charge_price)
 
-# Simulating a day with decision-making based on SOC and price comparison
-total_reward = 0
-for step in range(1, env.max_time):  # Adjusted range to 47 to avoid out-of-bounds error
-    if env.current_soc < 10:
-        action = Actions.CHARGE
-    elif env.prices['discharge'][env.time] > env.prices['ride'][env.time]:
-        action = Actions.DISCHARGE
-    else:
-        action = Actions.RIDE
+        min_discharge_price = min_charge_price * 0.8
+        max_discharge_price = max_charge_price  * max(self.extreme_peak_multiplier) # Example range
+        norm_discharge_price = (state["Discharge Price"] - min_discharge_price) / (max_discharge_price - min_discharge_price)
         
-    next_state, reward, done = env.step(action)
-    print(f"Step: {step}, Action: {action.name}, Next State: {next_state}, Reward: {reward}, Done: {done}")
-    total_reward += reward
-    if done:
-        break
-print(f"Total reward: {total_reward}")
+        
+        # Normalizing Ride Price - Assume these ranges; adjust based on your data
+        min_ride_price = self.base_ride_price
+        max_ride_price = self.base_ride_price + 4 * self.ride_price_increment
+        norm_ride_price = (state["Ride Price"] - min_ride_price) / (max_ride_price - min_ride_price)
+        
+        # Normalizing Ride Demand
+        min_ride_demand, max_ride_demand = 1, 5
+        norm_ride_demand = (state["Ride Demand"] - min_ride_demand) / (max_ride_demand - min_ride_demand)
+        return np.array([norm_soc, norm_discharge_price, norm_charge_price, norm_ride_price, norm_ride_demand])
