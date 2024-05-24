@@ -110,31 +110,36 @@ class EVEnvironment:
             "Discharge Price": self.prices['discharge'][self.time],
             "Charge Price": self.prices['charge'][self.time],
             "Ride Price": self.prices['ride'][self.time],
-            "Ride Demand": self.ride_demand[self.time]
+            "Ride Demand": self.ride_demand[self.time],
+            "Time": self.time
         }
 
     def step(self, action):
-        # print(f"Step {self.time}: Action {action.name}, Current SOC: {self.current_soc}")
+        if self.time >= self.max_time:
+            raise IndexError("Time index exceeded max_time")
+
         if action == Actions.CHARGE:
             self.current_soc = min(self.current_soc + self.charge_rate, self.max_soc)
-            reward = -self.prices['charge'][self.time] * self.charge_rate  # Cost for charging
+            reward = -self.prices['charge'][self.time] * self.charge_rate
         elif action == Actions.DISCHARGE:
             self.current_soc = max(self.current_soc - self.discharge_rate, self.min_soc)
-            reward = self.prices['discharge'][self.time] * self.discharge_rate  # Revenue from discharging
+            reward = self.prices['discharge'][self.time] * self.discharge_rate
         elif action == Actions.RIDE:
             if self.current_soc >= self.ride_energy:
                 self.current_soc -= self.ride_energy * self.ride_duration
-                reward = self.prices['ride'][self.time]  # Revenue from providing a ride based on ride price
+                reward = self.prices['ride'][self.time]
             else:
-                reward = self.penalty_no_charge  # Penalty for not having enough charge to provide a ride
+                reward = self.penalty_no_charge
         else:
             reward = 0
 
         self.time += 1
         done = self.time >= self.max_time
 
+        if done:
+            self.time = self.max_time - 1
+
         next_state = self.get_state()
-        # print(f"Next State: {next_state}, Reward: {reward}, Done: {done}")
         return next_state, reward, done
 
     # @classmethod
@@ -160,4 +165,8 @@ class EVEnvironment:
         # Normalizing Ride Demand
         min_ride_demand, max_ride_demand = 1, 5
         norm_ride_demand = (state["Ride Demand"] - min_ride_demand) / (max_ride_demand - min_ride_demand)
-        return np.array([norm_soc, norm_discharge_price, norm_charge_price, norm_ride_price, norm_ride_demand])
+
+        # time
+        norm_time = state["Time"]
+
+        return np.array([norm_soc, norm_discharge_price, norm_charge_price, norm_ride_price, norm_ride_demand, norm_time])
