@@ -34,7 +34,7 @@ class LinearQAgent:
 
 # Initialize environment and agent
 env = EVEnvironment()
-state_size = 6  # The length of the state array
+state_size = 5  # The length of the state array
 action_size = len(Actions)
 agent = LinearQAgent(state_size, action_size)
 
