@@ -34,7 +34,7 @@ class LinearQAgent:
 
 # Initialize environment and agent
 env = EVEnvironment()
-state_size = 5  # The length of the state array
+state_size = 6  # The length of the state array
 action_size = len(Actions)
 agent = LinearQAgent(state_size, action_size)
 
@@ -52,21 +52,20 @@ for e in range(episodes):
     state = env.reset()
     state_array = env.state_to_array(state)
     total_reward = 0
-    for t in range(0, env.max_time-1):
+    done = False
+    while not done:
         action = agent.choose_action(state_array, epsilon)
         next_state, reward, done = env.step(action)
         next_state_array = env.state_to_array(next_state)
         agent.update(state_array, action, reward, next_state_array, done)
         state_array = next_state_array
         total_reward += reward
-        if done:
-            break
-    
+
     if epsilon > epsilon_min:
         epsilon *= epsilon_decay
-    
+
     total_rewards.append(total_reward)
-    print(f"Episode {e+1}/{episodes}, Total Reward: {total_reward}, Epsilon: {epsilon:.2f}")
+    print(f"Episode {e + 1}/{episodes}, Total Reward: {total_reward}, Epsilon: {epsilon:.2f}")
 
 print("Training completed.")
 
