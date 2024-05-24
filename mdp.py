@@ -90,7 +90,6 @@ class EVEnvironment:
                 prices['charge'][hour] = self.base_off_peak_price + np.random.normal(0, self.off_peak_variance)
                 prices['discharge'][hour] = prices['charge'][hour] * np.random.uniform(0.8, 1.0) #Off peak usually 80 % of on peak
 
-          
             
             prices['ride'][hour] = self.base_ride_price + (self.ride_demand[hour] - 1) * self.ride_price_increment
 
@@ -110,7 +109,6 @@ class EVEnvironment:
             "Discharge Price": self.prices['discharge'][self.time],
             "Charge Price": self.prices['charge'][self.time],
             "Ride Price": self.prices['ride'][self.time],
-            "Ride Demand": self.ride_demand[self.time],
             "Time": self.time
         }
 
@@ -120,16 +118,16 @@ class EVEnvironment:
 
         if action == Actions.CHARGE:
             self.current_soc = min(self.current_soc + self.charge_rate, self.max_soc)
-            reward = -self.prices['charge'][self.time] * self.charge_rate
+            reward = -self.prices['charge'][self.time] * self.charge_rate  # Cost for charging
         elif action == Actions.DISCHARGE:
             self.current_soc = max(self.current_soc - self.discharge_rate, self.min_soc)
-            reward = self.prices['discharge'][self.time] * self.discharge_rate
+            reward = self.prices['discharge'][self.time] * self.discharge_rate # Revenue from discharging
         elif action == Actions.RIDE:
             if self.current_soc >= self.ride_energy:
                 self.current_soc -= self.ride_energy * self.ride_duration
-                reward = self.prices['ride'][self.time]
+                reward = self.prices['ride'][self.time] # Revenue from providing a ride based on ride price
             else:
-                reward = self.penalty_no_charge
+                reward = self.penalty_no_charge # Penalty for not having enough charge to provide a ride
         else:
             reward = 0
 
@@ -161,12 +159,8 @@ class EVEnvironment:
         min_ride_price = self.base_ride_price
         max_ride_price = self.base_ride_price + 4 * self.ride_price_increment
         norm_ride_price = (state["Ride Price"] - min_ride_price) / (max_ride_price - min_ride_price)
-        
-        # Normalizing Ride Demand
-        min_ride_demand, max_ride_demand = 1, 5
-        norm_ride_demand = (state["Ride Demand"] - min_ride_demand) / (max_ride_demand - min_ride_demand)
 
         # time
-        norm_time = state["Time"]
+        norm_time = state["Time"] / self.max_time
 
-        return np.array([norm_soc, norm_discharge_price, norm_charge_price, norm_ride_price, norm_ride_demand, norm_time])
+        return np.array([norm_soc, norm_discharge_price, norm_charge_price, norm_ride_price, norm_time])
