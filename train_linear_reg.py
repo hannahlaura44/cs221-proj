@@ -9,8 +9,8 @@ class LinearQAgent:
     def __init__(self, state_size, action_size, eta=0.01, gamma=0.95):
         self.state_size = state_size
         self.action_size = action_size
-        self.eta = eta  # Learning rate
-        self.gamma = gamma  # Discount rate
+        self.eta = eta
+        self.gamma = gamma
         self.weights = {action: np.random.randn(state_size) for action in Actions}
 
     def get_q_value(self, state, action):
@@ -35,7 +35,7 @@ class LinearQAgent:
 
 # Initialize environment and agent
 env = EVEnvironment()
-state_size = 6  # The length of the state array
+state_size = 6  # Update to reflect the number of normalized state variables
 action_size = len(Actions)
 agent = LinearQAgent(state_size, action_size)
 
