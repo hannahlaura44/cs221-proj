@@ -142,7 +142,30 @@ class EVEnvironment:
         next_state = self.get_state()
         return next_state, reward, done
 
-    @classmethod
-    def state_to_array(cls, state):
-        return np.array([state["Current SOC"], state["Discharge Price"], state["Charge Price"], state["Ride Price"],
-                         state["Ride Demand"], state["Time"]])
+    def state_to_array(self, state):
+        # State values
+        norm_soc = state["Current SOC"] / self.max_soc
+
+        # Prices
+        min_charge_price = self.base_off_peak_price
+        max_charge_price = self.base_high_demand_price
+        norm_charge_price = (state["Charge Price"] - min_charge_price) / (max_charge_price - min_charge_price)
+
+        min_discharge_price = min_charge_price * 0.8
+        max_discharge_price = max_charge_price * max(self.extreme_peak_multiplier)
+        norm_discharge_price = (state["Discharge Price"] - min_discharge_price) / (
+                    max_discharge_price - min_discharge_price)
+
+        # Ride Price
+        min_ride_price = self.base_ride_price
+        max_ride_price = self.base_ride_price + 4 * self.ride_price_increment
+        norm_ride_price = (state["Ride Price"] - min_ride_price) / (max_ride_price - min_ride_price)
+
+        # Ride Demand
+        norm_ride_demand = (state["Ride Demand"] - 1) / 4
+
+        # Time
+        norm_time = state["Time"] / self.max_time
+
+        return np.array(
+            [norm_soc, norm_discharge_price, norm_charge_price, norm_ride_price, norm_ride_demand, norm_time])
