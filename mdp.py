@@ -172,7 +172,7 @@ class EVEnvironment:
             possible_discharge = self.current_soc - self.min_soc
             actual_discharge = min(self.discharge_rate, possible_discharge)
             self.current_soc -= actual_discharge
-            self.current_soc = max(self.current_soc - self.discharge_rate, self.min_soc)
+            self.current_soc = max(self.current_soc - self.discharge_rate, self.min_soc) #TODO bug
             # Calculate reward based on the fraction of the discharge rate
             reward = self.revenue['discharge'][self.time] * (actual_discharge / self.discharge_rate)      
         elif action == Actions.RIDE:
