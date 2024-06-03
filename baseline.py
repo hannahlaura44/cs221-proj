@@ -8,7 +8,6 @@ from mdp import *
 
 def run_episode(env, verbose=False):
     state = env.reset()
-    state_array = env.state_to_array(state)  # Normalize the initial state
     total_reward = 0
 
     for t in range(env.max_time):
@@ -27,7 +26,6 @@ def run_episode(env, verbose=False):
             print(f"Reward: {reward}")
             print(f"Next State: {next_state}")
         state = next_state
-        state_array = env.state_to_array(state)  # Normalize the next state
         total_reward += reward
         if done:
             break
