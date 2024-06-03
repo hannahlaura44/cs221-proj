@@ -75,3 +75,35 @@ plt.xlabel('Episode')
 plt.ylabel('Total Reward')
 plt.title('Total Reward per Episode')
 plt.show()
+
+# Test the learned policy
+def test_learned_policy(agent, env, num_episodes=100, verbose=False):
+    total_rewards = []
+
+    for episode in range(num_episodes):
+        state = env.reset()
+        state_array = env.state_to_array(state)
+        total_reward = 0
+        done = False
+
+        while not done:
+            action = agent.choose_action(state_array, epsilon=0)  # Use greedy policy
+            next_state, reward, done = env.step(action)
+            if verbose:
+                print("---------------")
+                print(f"State: {state}")
+                print(f"Taking action {action}")
+                print(f"Reward: {reward}")
+                print(f"Next State: {next_state}")
+            state = next_state
+            state_array = env.state_to_array(state)
+            total_reward += reward
+
+        total_rewards.append(total_reward)
+        print(f"Test Episode {episode + 1}/{num_episodes}, Total Reward: {total_reward}")
+
+    average_total_reward = sum(total_rewards) / num_episodes
+    print(f"Average total reward over {num_episodes} test episodes: {average_total_reward}")
+
+# Run the test
+test_learned_policy(agent, env, verbose=True)
