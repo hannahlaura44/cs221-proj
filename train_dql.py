@@ -12,12 +12,9 @@ from mdp import EVEnvironment, Actions
 import os
 import argparse
 
-
-
 class DQNAgentSGD:
     def __init__(self, state_size, action_size, model_path=None, metadata_path=None, 
-                 gamma=0.95, epsilon=0.30, # TODO epsilon=1.0
-                 epsilon_min=0.01, epsilon_decay=0.995, learning_rate=0.001):
+                 gamma=0.95, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995, learning_rate=0.001):
         self.state_size = state_size
         self.action_size = action_size
         self.gamma = gamma  # Discount rate
@@ -80,6 +77,7 @@ class DQNAgentSGD:
         print(f"Model and metadata saved to {model_path} and {metadata_path}")
 
 def train_agent(agent, env, save_model_path, save_metadata_path, episodes=1000):
+    start_episode_num = agent.episodes
     for e in range(episodes):
         state = env.reset()
         state_array = np.reshape(env.state_to_array(state), [1, agent.state_size])
@@ -95,7 +93,7 @@ def train_agent(agent, env, save_model_path, save_metadata_path, episodes=1000):
 
         agent.episodes += 1
         agent.total_rewards.append(total_reward)
-        print(f"Episode {e + 1}/{episodes}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")
+        print(f"Episode {agent.episodes}/{start_episode_num + episodes}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")
 
         # decay epsilon
         if agent.epsilon > agent.epsilon_min:
@@ -103,6 +101,10 @@ def train_agent(agent, env, save_model_path, save_metadata_path, episodes=1000):
         
         # Save the model and metadata at the end of each episode
         agent.save_model(save_model_path, save_metadata_path)
+        if agent.episodes % 500 == 0:
+            # save model weights every 500 iterations
+            path = save_model_path.split(".keras")[0]
+            agent.save_model(f"{path}_{agent.episodes}_episodes.keras", save_metadata_path)
 
     print("Training completed.")
 
@@ -154,20 +156,25 @@ def main(args):
     env = EVEnvironment()
     state_size = 5  # The length of the state array
     action_size = len(Actions)
-    model_path = "dqn_model.keras"
-    metadata_path = "dqn_metadata.json"
-    agent = DQNAgentSGD(state_size, action_size, model_path=model_path, metadata_path=metadata_path)
+    agent = DQNAgentSGD(state_size, action_size, model_path=args.load_model_path, metadata_path=args.load_metadata_path)
 
     if args.train:
         # Train the agent
-        train_agent(agent, env, episodes=1000, save_model_path=model_path, save_metadata_path=metadata_path)
+        train_agent(agent, env, episodes=1000, save_model_path=args.save_model_path, save_metadata_path=args.save_metadata_path)
     elif args.test:
         # Run the test
-        test_learned_policy(agent, env, num_episodes=100, verbose=False)
+        test_learned_policy(agent, env, num_episodes=10, verbose=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='DQN Agent Training and Testing')
     parser.add_argument('--train', action='store_true', help='Train the DQN agent')
     parser.add_argument('--test', action='store_true', help='Test the DQN agent')
+    parser.add_argument('--load_model_path', type=str, help='Path to model weights')
+    parser.add_argument('--load_metadata_path', type=str, help='Path to model metadata')
+    parser.add_argument('--save_model_path', type=str, help='Save path for model weights')
+    parser.add_argument('--save_metadata_path', type=str, help='Save path for model metadata')
     args = parser.parse_args()
     main(args)
+
+    # example command:
+    # python train_dql.py --train --save_model_path dqn_model.keras --save_metadata_path dqn_metadata.json
