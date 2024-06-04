@@ -1,7 +1,8 @@
 import numpy as np
 import enum
+import matplotlib.pyplot as plt
 
-np.random.seed(42)
+# np.random.seed(42)
 
 class Actions(enum.Enum):
     CHARGE = 0
@@ -10,8 +11,8 @@ class Actions(enum.Enum):
 
 class EVEnvironment:
     def __init__(self, initial_soc=0.5, max_soc=75.0, min_soc=0.0, charge_rate=125, discharge_rate=5, ride_energy=7.5, ride_duration=0.5,
-                 base_off_peak_price=0.24, base_peak_price=0.48, base_high_demand_price=1.00, peak_multiplier=(2.0, 4.0), extreme_peak_multiplier=(20,40), off_peak_variance=0.02, peak_variance=0.05, high_demand_variance=0.1,
-                 base_ride_price=20, ride_price_increment=5, penalty_no_charge=-10, peak_hours=range(32, 40), extreme_peak_hours=range(39,42), max_time=48):
+                 base_off_peak_price=0.24, base_peak_price=0.48, base_high_demand_price=1.00, peak_multiplier=(2.0, 4.0), extreme_peak_multiplier=(5,20), off_peak_variance=0.02, peak_variance=0.05, high_demand_variance=0.1,
+                 base_ride_price=10, ride_price_increment=5, penalty_no_charge=-10, peak_hours=range(32, 40), extreme_peak_hours=range(39,42), max_time=48):
         
         # Initial state of charge (SOC) of the battery in kWh, set to 50% of max SOC
         # Source: https://evcompare.io/cars/tesla/tesla_model_y/
@@ -41,10 +42,9 @@ class EVEnvironment:
         
         self.time = 0
         self.max_time = max_time  # 24 hours with 30-minute intervals
-        self.ride_demand = self.generate_ride_demand()
 
         # Price parameters
-        # Base off-peak price per kWh during off-peak hours
+        # Base off-peak price ($ per kWh) during off-peak hours
         self.base_off_peak_price = base_off_peak_price
         # Base peak price per kWh during peak hours
         self.base_peak_price = base_peak_price
@@ -74,93 +74,126 @@ class EVEnvironment:
         self.peak_hours = peak_hours
         self.extreme_peak_hours = extreme_peak_hours
         
-        self.prices = self.generate_prices()
+        self.revenue = self.generate_revenue()
 
-    def generate_prices(self):
-        prices = {'charge': np.zeros(self.max_time), 'discharge': np.zeros(self.max_time), 'ride': np.zeros(self.max_time)}
+    def generate_revenue(self):
+        prices = {'charge': np.zeros(self.max_time), 'discharge': np.zeros(self.max_time)}
 
-        for hour in range(self.max_time):
-            if hour in self.extreme_peak_hours: # Extreme peak hours
-                prices['charge'][hour] = self.base_high_demand_price + np.random.normal(0, self.high_demand_variance)
-                prices['discharge'][hour] = prices['charge'][hour] * np.random.uniform(*self.extreme_peak_multiplier)
-            elif hour in self.peak_hours:  # Peak hours
-                prices['charge'][hour] = self.base_peak_price + np.random.normal(0, self.peak_variance)
-                prices['discharge'][hour] = prices['charge'][hour] * np.random.uniform(*self.peak_multiplier)
+        for t in range(self.max_time):
+            if t in self.extreme_peak_hours: # Extreme peak hours
+                prices['charge'][t] = self.base_high_demand_price + np.random.normal(0, self.high_demand_variance)
+                prices['discharge'][t] = prices['charge'][t] * np.random.uniform(*self.extreme_peak_multiplier)
+            elif t in self.peak_hours:  # Peak hours
+                prices['charge'][t] = self.base_peak_price + np.random.normal(0, self.peak_variance)
+                prices['discharge'][t] = prices['charge'][t] * np.random.uniform(*self.peak_multiplier)
             else:  # off peak hours
-                prices['charge'][hour] = self.base_off_peak_price + np.random.normal(0, self.off_peak_variance)
-                prices['discharge'][hour] = prices['charge'][hour] * np.random.uniform(0.8, 1.0) #Off peak usually 80 % of on peak
+                prices['charge'][t] = self.base_off_peak_price + np.random.normal(0, self.off_peak_variance)
+                prices['discharge'][t] = prices['charge'][t] * np.random.uniform(0.8, 1.0) #Off peak usually 80 % of on peak
 
+        revenue = {'ride': self.generate_ride_prices()}
+        revenue['charge'] = - prices['charge'] * self.charge_rate
+        revenue['discharge'] = prices['discharge'] * self.discharge_rate
+
+        return revenue
+    
+    def plot_revenue(self):
+        # Number of 30-minute intervals
+        intervals = len(self.revenue['ride'])
+
+        # Generate x values for hours
+        x_values = np.arange(intervals) / 2
+
+        # Plotting the revenue arrays
+        plt.plot(x_values, self.revenue['charge'], label='Charge Revenue')
+        plt.plot(x_values, self.revenue['discharge'], label='Discharge Revenue')
+        plt.plot(x_values, self.revenue['ride'], label='Ride Revenue')
+
+        # Adding titles and labels
+        plt.title('Revenue Over Time')
+        plt.xlabel('Time Interval')
+        plt.ylabel('Revenue')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    def generate_ride_prices(self):
+        # Initialize price array
+        prices = np.zeros(self.max_time)
+        
+        # Constants for different time periods
+        daytime_start, daytime_end = 6, 22  # 6 AM to 10 PM
+        nighttime_base_price = 1
+        daytime_base_price = 5
+        peak_price = 15
+        
+        for thirty_min_interval in range(self.max_time):
+            hour_of_day = thirty_min_interval / 2  # To get the hour of the day
             
-            prices['ride'][hour] = self.base_ride_price + (self.ride_demand[hour] - 1) * self.ride_price_increment
-
+            if daytime_start <= hour_of_day < daytime_end:
+                # Daytime hours with potential peak demand
+                if (7 <= hour_of_day < 9) or (17 <= hour_of_day < 19):  # Peak hours within daytime
+                    prices[thirty_min_interval] = np.random.poisson(peak_price)
+                else:
+                    # Daytime hours with elevated base demand
+                    prices[thirty_min_interval] = np.random.poisson(daytime_base_price + np.random.randint(1, 4))
+            else:
+                # Nighttime hours with very low demand
+                prices[thirty_min_interval] = np.random.poisson(nighttime_base_price)
+        
         return prices
-
-    def generate_ride_demand(self):
-        return np.random.randint(1, 5, self.max_time)  # Demand between 1 and 5
 
     def reset(self):
         self.current_soc = self.max_soc * self.initial_soc  # Reset to 50% of maximum SOC
         self.time = 0
+        self.revenue = self.generate_revenue() # generate new electricity and ride prices (with some variation)
         return self.get_state()
 
     def get_state(self):
         return {
             "Current SOC": self.current_soc,
-            "Discharge Price": self.prices['discharge'][self.time],
-            "Charge Price": self.prices['charge'][self.time],
-            "Ride Price": self.prices['ride'][self.time],
-            "Time": self.time
+            "Discharge Price": self.revenue['discharge'][self.time], # potential discharge revenue from previous timestep
+            "Charge Price": self.revenue['charge'][self.time],
+            "Ride Price": self.revenue['ride'][self.time],
+            "Time": self.time / 2
         }
 
     def step(self, action):
-        if self.time >= self.max_time:
-            raise IndexError("Time index exceeded max_time")
-
-        if action == Actions.CHARGE:
-            self.current_soc = min(self.current_soc + self.charge_rate, self.max_soc)
-            reward = -self.prices['charge'][self.time] * self.charge_rate  # Cost for charging
-        elif action == Actions.DISCHARGE:
-            self.current_soc = max(self.current_soc - self.discharge_rate, self.min_soc)
-            reward = self.prices['discharge'][self.time] * self.discharge_rate # Revenue from discharging
-        elif action == Actions.RIDE:
-            if self.current_soc >= self.ride_energy:
-                self.current_soc -= self.ride_energy * self.ride_duration
-                reward = self.prices['ride'][self.time] # Revenue from providing a ride based on ride price
-            else:
-                reward = self.penalty_no_charge # Penalty for not having enough charge to provide a ride
-        else:
-            reward = 0
-
         self.time += 1
         done = self.time >= self.max_time
 
         if done:
             self.time = self.max_time - 1
 
+        if action == Actions.CHARGE:
+            self.current_soc = min(self.current_soc + self.charge_rate, self.max_soc)
+            reward = self.revenue['charge'][self.time]  # Cost for charging
+        elif action == Actions.DISCHARGE:
+            # Calculate the possible discharge amount
+            possible_discharge = self.current_soc - self.min_soc
+            actual_discharge = min(self.discharge_rate, possible_discharge)
+            self.current_soc -= actual_discharge
+            self.current_soc = max(self.current_soc - self.discharge_rate, self.min_soc) #TODO bug
+            # Calculate reward based on the fraction of the discharge rate
+            reward = self.revenue['discharge'][self.time] * (actual_discharge / self.discharge_rate)      
+        elif action == Actions.RIDE:
+            if self.current_soc >= self.ride_energy:
+                self.current_soc -= self.ride_energy * self.ride_duration
+                reward = self.revenue['ride'][self.time] # Revenue from providing a ride
+            else:
+                reward = self.penalty_no_charge # Penalty for not having enough charge to provide a ride
+        else:
+            reward = 0
+
         next_state = self.get_state()
         return next_state, reward, done
 
     # @classmethod
     def state_to_array(self, state):
-        # We need to normalize the states
+        # normalize
         norm_soc = state["Current SOC"] / self.max_soc
-
-        # Normalizing Prices - Assume these ranges; adjust based on your data
-        min_charge_price = self.base_off_peak_price
-        max_charge_price = self.base_high_demand_price + 4 * self.high_demand_variance 
-        norm_charge_price = (state["Charge Price"] - min_charge_price) / (max_charge_price - min_charge_price)
-
-        min_discharge_price = min_charge_price * 0.8
-        max_discharge_price = max_charge_price  * max(self.extreme_peak_multiplier) # Example range
-        norm_discharge_price = (state["Discharge Price"] - min_discharge_price) / (max_discharge_price - min_discharge_price)
-        
-        
-        # Normalizing Ride Price - Assume these ranges; adjust based on your data
-        min_ride_price = self.base_ride_price
-        max_ride_price = self.base_ride_price + 4 * self.ride_price_increment
-        norm_ride_price = (state["Ride Price"] - min_ride_price) / (max_ride_price - min_ride_price)
-
-        # time
+        norm_discharge = state["Discharge Price"] / np.max(self.revenue['discharge'])
+        norm_charge = state["Charge Price"] / np.max(self.revenue['charge'])
+        norm_ride = state["Ride Price"] / np.max(self.revenue['ride'])
         norm_time = state["Time"] / self.max_time
 
-        return np.array([norm_soc, norm_discharge_price, norm_charge_price, norm_ride_price, norm_time])
+        return np.array([norm_soc, norm_discharge, norm_charge, norm_ride, norm_time])
