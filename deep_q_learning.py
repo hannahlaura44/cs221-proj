@@ -103,8 +103,9 @@ def train_agent(agent, env, save_model_path, save_metadata_path, episodes=1000):
         agent.save_model(save_model_path, save_metadata_path)
         if agent.episodes % 500 == 0:
             # save model weights every 500 iterations
-            path = save_model_path.split(".keras")[0]
-            agent.save_model(f"{path}_{agent.episodes}_episodes.keras", save_metadata_path)
+            model_path = save_model_path.split(".keras")[0]
+            metadata_path = save_metadata_path.split(".json")[0]
+            agent.save_model(f"{model_path}_{agent.episodes}_episodes.keras", f"{metadata_path}_{agent.episodes}_episodes.json")
 
     print("Training completed.")
 
@@ -163,7 +164,7 @@ def main(args):
         train_agent(agent, env, episodes=1000, save_model_path=args.save_model_path, save_metadata_path=args.save_metadata_path)
     elif args.test:
         # Run the test
-        test_learned_policy(agent, env, num_episodes=10, verbose=False)
+        test_learned_policy(agent, env, num_episodes=10, verbose=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='DQN Agent Training and Testing')
