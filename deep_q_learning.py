@@ -163,7 +163,7 @@ def main(args):
         train_agent(agent, env, episodes=1000, save_model_path=args.save_model_path, save_metadata_path=args.save_metadata_path)
     elif args.test:
         # Run the test
-        test_learned_policy(agent, env, num_episodes=10, verbose=True)
+        test_learned_policy(agent, env, num_episodes=10, verbose=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='DQN Agent Training and Testing')
@@ -176,5 +176,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(args)
 
-    # example command:
-    # python train_dql.py --train --save_model_path dqn_model.keras --save_metadata_path dqn_metadata.json
+    # example train command:
+    # python deep_q_learning.py --train --save_model_path dqn_model.keras --save_metadata_path dqn_metadata.json
+
+    # test:
+    # python deep_q_learning.py --test --load_model_path dqn_model.keras --load_metadata_path dqn_metadata.json
