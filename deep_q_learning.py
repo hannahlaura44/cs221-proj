@@ -103,8 +103,9 @@ def train_agent(agent, env, save_model_path, save_metadata_path, episodes=1000):
         agent.save_model(save_model_path, save_metadata_path)
         if agent.episodes % 500 == 0:
             # save model weights every 500 iterations
-            path = save_model_path.split(".keras")[0]
-            agent.save_model(f"{path}_{agent.episodes}_episodes.keras", save_metadata_path)
+            model_path = save_model_path.split(".keras")[0]
+            metadata_path = save_metadata_path.split(".json")[0]
+            agent.save_model(f"{model_path}_{agent.episodes}_episodes.keras", f"{metadata_path}_{agent.episodes}_episodes.json")
 
     print("Training completed.")
 
@@ -176,5 +177,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(args)
 
-    # example command:
-    # python train_dql.py --train --save_model_path dqn_model.keras --save_metadata_path dqn_metadata.json
+    # example train command:
+    # python deep_q_learning.py --train --save_model_path dqn_model.keras --save_metadata_path dqn_metadata.json
+
+    # test:
+    # python deep_q_learning.py --test --load_model_path dqn_model.keras --load_metadata_path dqn_metadata.json
